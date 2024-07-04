@@ -1,0 +1,31 @@
+Deploy a Pod in Minikube consisting of 3 containers. The first container should consist of a script which writes  dummy logs in the directory '/var/log/example' and is always running. This directory should be mounted to a second sidecar container in the pod consisting of the Filebeat application image via an emptyDir type volume. The idea is for you to configure the Filebeat application in this sidecar container to read the dummy logs generated from the first container and output them to std_out (console output). The third container has the same access to this directory via the volume mount and its idea is to delete all the logs older than 4 hours. After confirming that everything works remoove all the created resources.
+
+Sample script that generates the logs:
+
+example-logs.sh
+
+#!/bin/bash
+
+logdir="/var/log/example"
+
+mkdir -p $logdir
+
+while true; do
+
+  timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+
+  date=$(date +"%Y-%m-%d-%H-00-00")
+
+  uuid=$(uuidgen)
+
+  echo "$timestamp INFO [com.my.logger.LoggerClass] - My dummy log message $uuid"
+
+  echo "$timestamp INFO [com.my.logger.LoggerClass] - My dummy log message $uuid" >> $logdir/dummy-$date.log
+
+  sleep 5
+
+done
+
+
+
+ 
