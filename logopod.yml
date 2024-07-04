@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: logopod
+spec:
+  containers:
+    - name: the-creator
+      image: ubuntu:latest
+      command:
+        - "/bin/bash"
+        - "-c"
+        - |
+          apt-get update && apt-get install -y uuid-runtime
+          logdir="/var/log/example"
+          mkdir -p $logdir
+          while true; do
+            timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+            date=$(date +"%Y-%m-%d-%H-00-00")
+            uuid=$(uuidgen)
+            echo "$timestamp INFO [com.my.logger.LoggerClass] - My dummy log message $uuid"
+            echo "$timestamp INFO [com.my.logger.LoggerClass] - My dummy log message $uuid" >> $logdir/dummy-$date.log
+            sleep 5
+          done
+      volumeMounts:
+        - name: log-volume
+          mountPath: /var/log/example
+    - name: the-scholar
+      image: elastic/filebeat:7.17.22
+      command:
+        - "/bin/sh"
+        - "-c"
+        - |
+          filebeat -E 'filebeat.inputs=[{type: log, paths: ["/var/log/example/*.log"]}]' -E output='{elasticsearch.enabled: false, console.pretty: true}'
+      volumeMounts:
+        - name: log-volume
+          mountPath: /var/log/example
+    - name: the-annihilator
+      image: ubuntu:latest
+      command: ["/bin/bash", "-c", "while true; do find /var/log/example -name 'dummy*.log' -mmin +240 -delete; sleep 3601; done"]
+      volumeMounts:
+        - name: log-volume
+          mountPath: /var/log/example
+  volumes:
+    - name: log-volume
+      emptyDir: {}
